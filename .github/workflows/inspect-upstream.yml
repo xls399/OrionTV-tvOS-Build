@@ -47,6 +47,23 @@ jobs:
             cat package.json
           fi
 
+          echo "===== app.json ====="
+          cat app.json
+
+          echo "===== eas.json ====="
+          cat eas.json
+
+          echo "===== All package scripts ====="
+          node -e 'console.log(JSON.stringify(require("./package.json").scripts, null, 2))'
+
+          echo "===== Native project directories ====="
+          find . -maxdepth 3 \
+            \( -name '*.xcodeproj' \
+            -o -name '*.xcworkspace' \
+            -o -name '*.xcscheme' \
+            -o -name 'Podfile' \) \
+            -print
+
           echo "===== README build references ====="
           grep -inE \
             'prebuild|tvos|tvOS|xcodebuild|expo|yarn|pnpm|npm' \
