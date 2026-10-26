@@ -1,0 +1,58 @@
+
+name: Inspect OrionTV Upstream
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: macos-14
+    steps:
+      - name: Checkout OrionTV source
+        uses: actions/checkout@v4
+        with:
+          repository: orion-lib/OrionTV
+          ref: main
+          path: upstream
+
+      - name: Inspect project configuration
+        shell: bash
+        run: |
+          set -eu
+          cd upstream
+
+          echo "===== Latest source commit ====="
+          git log -1 --oneline
+
+          echo "===== Project manifests ====="
+          find . -maxdepth 3 \
+            \( -name package.json \
+            -o -name app.json \
+            -o -name app.config.js \
+            -o -name app.config.ts \
+            -o -name Podfile \
+            -o -name '*.xcworkspace' \
+            -o -name '*.xcodeproj' \
+            -o -name '*.xcscheme' \
+            -o -name eas.json \) \
+            -print
+
+          echo "===== package.json ====="
+          if [ -f package.json ]; then
+            cat package.json
+          fi
+
+          echo "===== README build references ====="
+          grep -inE \
+            'prebuild|tvos|tvOS|xcodebuild|expo|yarn|pnpm|npm' \
+            README.md 2>/dev/null || true
+
+          echo "===== Available Xcode schemes ====="
+          find . -name '*.xcodeproj' -type d \
+            -print0 | while IFS= read -r -d '' project; do
+              echo "--- $project ---"
+              xcodebuild -list -project "$project" || true
+            done
