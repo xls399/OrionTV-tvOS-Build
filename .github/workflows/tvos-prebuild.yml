@@ -1,0 +1,79 @@
+
+name: OrionTV tvOS Prebuild
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prebuild:
+    runs-on: macos-14
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout OrionTV source
+        uses: actions/checkout@v4
+        with:
+          repository: orion-lib/OrionTV
+          path: upstream
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Yarn
+        run: npm install --global yarn@1.22.22
+
+      - name: Install dependencies
+        working-directory: upstream
+        run: yarn install --frozen-lockfile
+
+      - name: Generate native project
+        working-directory: upstream
+        run: EXPO_TV=1 EXPO_USE_METRO_WORKSPACE_ROOT=1 yarn prebuild
+
+      - name: Inspect generated Xcode projects
+        working-directory: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          echo "===== Xcode version ====="
+          xcodebuild -version
+
+          echo "===== Generated native projects ====="
+          find ios -maxdepth 5 \
+            \( -name '*.xcodeproj' \
+            -o -name '*.xcworkspace' \
+            -o -name '*.xcscheme' \
+            -o -name 'Podfile' \) \
+            -print || true
+
+          echo "===== Available workspaces ====="
+          find ios -maxdepth 4 -name '*.xcworkspace' -type d \
+            -print | while read -r workspace; do
+              echo "--- $workspace ---"
+              xcodebuild -list -workspace "$workspace" || true
+            done
+
+          echo "===== Available projects ====="
+          find ios -maxdepth 4 -name '*.xcodeproj' -type d \
+            -print | while read -r project; do
+              echo "--- $project ---"
+              xcodebuild -list -project "$project" || true
+            done
+
+      - name: Upload generated project for diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oriontv-tvos-prebuild-diagnostics
+          path: |
+            upstream/ios
+            upstream/package.json
+            upstream/app.json
+          if-no-files-found: warn
+          retention-days: 7
