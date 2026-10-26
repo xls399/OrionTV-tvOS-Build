@@ -11,12 +11,14 @@ jobs:
   inspect:
     runs-on: macos-14
     steps:
+      
       - name: Checkout OrionTV source
-        uses: actions/checkout@v4
-        with:
-          repository: orion-lib/OrionTV
-          ref: main
-          path: upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 \
+            https://github.com/orion-lib/OrionTV.git upstream
+
 
       - name: Inspect project configuration
         shell: bash
